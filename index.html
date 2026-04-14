@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docs Form AI | Abinash Kumar Singh</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Poppins:wght@700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/docx@7.1.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --secondary: #d946ef;
+            --accent: #0ea5e9;
+            --bg-dark: #030712;
+            --bg-light: #f9fafb;
+            --glass-dark: rgba(15, 23, 42, 0.7);
+            --glass-light: rgba(255, 255, 255, 0.7);
+            --border-dark: rgba(255, 255, 255, 0.1);
+            --border-light: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body.dark {
+            background: var(--bg-dark);
+            color: #f8fafc;
+        }
+
+        body.light {
+            background: var(--bg-light);
+            color: #1f2937;
+        }
+
+        /* Background Gradients */
+        .bg-gradients {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .gradient-1, .gradient-2 {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.2;
+        }
+
+        .dark .gradient-1 { background: var(--primary); top: 0; left: 0; }
+        .dark .gradient-2 { background: var(--secondary); bottom: 0; right: 0; }
+        .light .gradient-1 { background: #a78bfa; top: 0; left: 0; }
+        .light .gradient-2 { background: #f0abfc; bottom: 0; right: 0; }
+
+        /* Branding */
+        .branding {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            font-size: 0.75rem;
+            z-index: 100;
+            line-height: 1.4;
+        }
+
+        .dark .branding { color: #94a3b8; }
+        .light .branding { color: #6b7280; }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            padding: 12px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+
+        .dark .theme-toggle {
+            background: #1f2937;
+            color: #fbbf24;
+        }
+
+        .light .theme-toggle {
+            background: white;
+            color: #374151;
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Notification Toast */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            z-index: 200;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .dark .notification {
+            background: #1f2937;
+            color: white;
+            border: 1px solid #374151;
+        }
+
+        .light .notification {
+            background: white;
+            color: #1f2937;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 80px 20px 40px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .site-logo {
+            font-family: 'Poppins', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            background: linear-gradient(to right, #fff, var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(0 0 20px rgba(217, 70, 239, 0.3));
+        }
+
+        .light .site-logo {
+            background: linear-gradient(to right, #1f2937, #7c3aed, #0ea5e9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.125rem;
+        }
+
+        .dark .subtitle { color: #94a3b8; }
+        .light .subtitle { color: #6b7280; }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1000px;
+            margin: 0 auto 100px;
+            width: 90%;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Tab Navigation */
+        .nav-pills {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            padding: 8px;
+            border-radius: 16px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        }
+
+        .dark .nav-pills {
+            background: var(--glass-dark);
+            border: 1px solid var(--border-dark);
+        }
+
+        .light .nav-pills {
+            background: var(--glass-light);
+            border: 1px solid var(--border-light);
+        }
+
+        .nav-btn {
+            padding: 14px 32px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .nav-btn:not(.active) {
+            background: transparent;
+        }
+
+        .dark .nav-btn:not(.active) { color: #94a3b8; }
+        .light .nav-btn:not(.active) { color: #6b7280; }
+
+        .nav-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .nav-btn:hover:not(.active) {
+            transform: translateY(-2px);
+        }
+
+        /* Glass Card */
+        .glass-card {
+            padding: 40px;
+            border-radius: 24px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        }
+
+        .dark .glass-card {
+            background: var(--glass-dark);
+            border: 1px solid var(--border-dark);
+        }
+
+        .light .glass-card {
+            background: var(--glass-light);
+            border: 1px solid var(--border-light);
+        }
+
+        /* Tool Panels */
+        .tool-panel {
+            display: none;
+        }
+
+        .tool-panel.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Control Grid */
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        /* Form Elements */
+        select, button, textarea {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        select {
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .dark select {
+            background: #1e293b;
+            color: white;
+            border-color: #334155;
+        }
+
+        .light select {
+            background: #f3f4f6;
+            color: #1f2937;
+            border-color: #d1d5db;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Buttons */
+        button {
+            padding: 14px 24px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-main {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-mic.listening {
+            background: #ef4444 !important;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .btn-ai-refine {
+            background: linear-gradient(90deg, #059669, #10b981);
+            color: white;
+        }
+
+        .btn-ai-summary {
+            background: linear-gradient(90deg, #0ea5e9, #06b6d4);
+            color: white;
+        }
+
+        .btn-download {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-pdf {
+            background: #ea580c;
+            color: white;
+        }
+
+        .dark .btn-copy {
+            background: #374151;
+            color: white;
+        }
+
+        .light .btn-copy {
+            background: #9ca3af;
+            color: white;
+        }
+
+        .dark .btn-clear {
+            background: #7f1d1d;
+            color: white;
+        }
+
+        .light .btn-clear {
+            background: #dc2626;
+            color: white;
+        }
+
+        /* Textarea */
+        textarea {
+            width: 100%;
+            height: 380px;
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid;
+            font-size: 1rem;
+            resize: none;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .dark textarea {
+            background: rgba(0,0,0,0.3);
+            border-color: #374155;
+            color: #e2e8f0;
+        }
+
+        .light textarea {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            color: #1f2937;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .textarea-wrapper {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .word-count {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            font-size: 0.875rem;
+            pointer-events: none;
+        }
+
+        .dark .word-count { color: #6b7280; }
+        .light .word-count { color: #9ca3af; }
+
+        /* Drop Area */
+        .drop-area {
+            border: 2px dashed;
+            padding: 60px 20px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .dark .drop-area {
+            border-color: #374155;
+        }
+
+        .light .drop-area {
+            border-color: #d1d5db;
+        }
+
+        .drop-area:hover {
+            border-color: var(--accent);
+        }
+
+        .dark .drop-area:hover {
+            background: rgba(14, 165, 233, 0.05);
+        }
+
+        .light .drop-area:hover {
+            background: rgba(14, 165, 233, 0.1);
+        }
+
+        .drop-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+
+        .drop-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .drop-subtitle {
+            font-size: 1rem;
+        }
+
+        .dark .drop-subtitle { color: #94a3b8; }
+        .light .drop-subtitle { color: #6b7280; }
+
+        .file-name {
+            margin-top: 16px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .site-logo {
+                font-size: 2.5rem;
+            }
+            
+            .control-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-bar {
+                flex-direction: column;
+            }
+            
+            .action-bar button {
+                width: 100%;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 5px;
+        }
+
+        .light ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.4);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.8);
+        }
+    </style>
+</head>
+<body class="dark">
+
+    <div class="bg-gradients">
+        <div class="gradient-1"></div>
+        <div class="gradient-2"></div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <div class="branding">
+        BY <b>ABINASH KUMAR SINGH</b><br>
+        DATA ANALYST & AI EXPERT
+    </div>
+
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">
+        ☀️
+    </button>
+
+    <header>
+        <h1 class="site-logo">Docs Form AI</h1>
+        <p class="subtitle">The Intelligent Document Transformation Suite</p>
+    </header>
+
+    <div class="main-container">
+        <div class="nav-pills">
+            <button class="nav-btn active" onclick="switchTab('voice', this)">🎙️ Voice AI</button>
+            <button class="nav-btn" onclick="switchTab('converter', this)">📂 Document Hub</button>
+        </div>
+
+        <div class="glass-card">
+            <div id="tab-voice" class="tool-panel active">
+                <div class="control-grid">
+                    <select id="in-lang">
+                        <option value="en-US">English 🇺🇸</option>
+                        <option value="hi-IN">Hindi 🇮🇳</option>
+                        <option value="bn-IN">Bengali 🇮🇳</option>
+                        <option value="ta-IN">Tamil 🇮🇳</option>
+                        <option value="te-IN">Telugu 🇮🇳</option>
+                        <option value="mr-IN">Marathi 🇮🇳</option>
+                        <option value="gu-IN">Gujarati 🇮🇳</option>
+                        <option value="kn-IN">Kannada 🇮🇳</option>
+                        <option value="ml-IN">Malayalam 🇮🇳</option>
+                        <option value="pa-IN">Punjabi 🇮🇳</option>
+                        <option value="ur-IN">Urdu 🇮🇳</option>
+                        <option value="or-IN">Odia 🇮🇳</option>
+                        <option value="es-ES">Spanish 🇪🇸</option>
+                        <option value="fr-FR">French 🇫🇷</option>
+                        <option value="de-DE">German 🇩🇪</option>
+                        <option value="it-IT">Italian 🇮🇹</option>
+                        <option value="pt-PT">Portuguese 🇵🇹</option>
+                        <option value="ru-RU">Russian 🇷🇺</option>
+                        <option value="ja-JP">Japanese 🇯🇵</option>
+                        <option value="ko-KR">Korean 🇰🇷</option>
+                        <option value="zh-CN">Chinese (Mandarin) 🇨🇳</option>
+                        <option value="ar-SA">Arabic 🇸🇦</option>
+                        <option value="th-TH">Thai 🇹🇭</option>
+                        <option value="vi-VN">Vietnamese 🇻🇳</option>
+                        <option value="nl-NL">Dutch 🇳🇱</option>
+                        <option value="tr-TR">Turkish 🇹🇷</option>
+                        <option value="pl-PL">Polish 🇵🇱</option>
+                    </select>
+                    <select id="out-lang">
+                        <option value="none">Original Voice</option>
+                        <option value="en">To English 🇺🇸</option>
+                        <option value="hi">To Hindi 🇮🇳</option>
+                        <option value="bn">To Bengali 🇮🇳</option>
+                        <option value="ta">To Tamil 🇮🇳</option>
+                        <option value="te">To Telugu 🇮🇳</option>
+                        <option value="mr">To Marathi 🇮🇳</option>
+                        <option value="es">To Spanish 🇪🇸</option>
+                        <option value="fr">To French 🇫🇷</option>
+                        <option value="de">To German 🇩🇪</option>
+                        <option value="it">To Italian 🇮🇹</option>
+                        <option value="pt">To Portuguese 🇵🇹</option>
+                        <option value="ru">To Russian 🇷🇺</option>
+                        <option value="ja">To Japanese 🇯🇵</option>
+                        <option value="ko">To Korean 🇰🇷</option>
+                        <option value="zh">To Chinese 🇨🇳</option>
+                        <option value="ar">To Arabic 🇸🇦</option>
+                    </select>
+                    <button id="mic-btn" class="btn-main btn-mic" onclick="toggleMic()">🎙️ Start Recording</button>
+                </div>
+                <div class="textarea-wrapper">
+                    <textarea id="voice-output" placeholder="Click 'Start Recording' and speak. Your AI-processed text will appear here..." oninput="updateWordCount('voice-output')"></textarea>
+                    <div class="word-count" id="voice-word-count">0 words</div>
+                </div>
+                <div class="action-bar">
+                    <button class="btn-ai-refine" onclick="processAI('voice-output', 'refine')">✨ AI Refine</button>
+                    <button class="btn-download" onclick="exportDoc('voice-output')">💾 Save .Docx</button>
+                    <button class="btn-pdf" onclick="exportPDF('voice-output')">📄 Save PDF</button>
+                    <button class="btn-copy" onclick="copyText('voice-output')">📋 Copy</button>
+                    <button class="btn-clear" onclick="clearText('voice-output')">🗑️ Clear</button>
+                </div>
+            </div>
+
+            <div id="tab-converter" class="tool-panel">
+                <div class="drop-area" onclick="document.getElementById('file-upload').click()">
+                    <div class="drop-icon">⚡</div>
+                    <h3 class="drop-title">Upload Data Source</h3>
+                    <p class="drop-subtitle">Supports Excel (.xlsx), Word (.docx), and Text (.txt)</p>
+                    <div class="file-name" id="file-name"></div>
+                    <input type="file" id="file-upload" hidden accept=".docx,.xlsx,.txt">
+                </div>
+                <div class="textarea-wrapper">
+                    <textarea id="conv-output" placeholder="Extracted data will be formatted here..." oninput="updateWordCount('conv-output')"></textarea>
+                    <div class="word-count" id="conv-word-count">0 words</div>
+                </div>
+                <div class="action-bar">
+                    <button class="btn-ai-summary" onclick="processAI('conv-output', 'summarize')">📊 AI Summary</button>
+                    <button class="btn-download" onclick="exportDoc('conv-output')">💾 Export Word</button>
+                    <button class="btn-pdf" onclick="exportPDF('conv-output')">📄 Export PDF</button>
+                    <button class="btn-copy" onclick="copyText('conv-output')">📋 Copy</button>
+                    <button class="btn-clear" onclick="clearText('conv-output')">🗑️ Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CORE CONFIG
+        const HF_TOKEN = "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";
+        
+        let isRecording = false;
+        let recognition = null;
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            // Load theme
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            setTheme(savedTheme);
+            
+            // Load saved content
+            const savedVoice = localStorage.getItem('voiceText');
+            const savedConv = localStorage.getItem('converterText');
+            if (savedVoice) document.getElementById('voice-output').value = savedVoice;
+            if (savedConv) document.getElementById('conv-output').value = savedConv;
+            
+            // Update word counts
+            updateWordCount('voice-output');
+            updateWordCount('conv-output');
+            
+            // Initialize speech recognition
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = false;
+                
+                recognition.onresult = async (event) => {
+                    const text = event.results[event.results.length - 1][0].transcript;
+                    const target = document.getElementById('out-lang').value;
+                    const inputLang = document.getElementById('in-lang').value;
+                    
+                    if(target !== 'none') {
+                        try {
+                            const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${inputLang.split('-')[0]}|${target}`);
+                            const data = await res.json();
+                            document.getElementById('voice-output').value += data.responseData.translatedText + " ";
+                        } catch (error) {
+                            console.error("Translation error:", error);
+                            document.getElementById('voice-output').value += text + " ";
+                        }
+                    } else {
+                        document.getElementById('voice-output').value += text + " ";
+                    }
+                    
+                    updateWordCount('voice-output');
+                    saveToLocalStorage('voiceText', document.getElementById('voice-output').value);
+                };
+                
+                recognition.onerror = (event) => {
+                    console.error("Speech recognition error:", event.error);
+                    stopRecording();
+                };
+            }
+        });
+
+        // Auto-save
+        function saveToLocalStorage(key, value) {
+            localStorage.setItem(key, value);
+        }
+
+        document.getElementById('voice-output').addEventListener('input', (e) => {
+            saveToLocalStorage('voiceText', e.target.value);
+        });
+
+        document.getElementById('conv-output').addEventListener('input', (e) => {
+            saveToLocalStorage('converterText', e.target.value);
+        });
+
+        // Theme Toggle
+        function toggleTheme() {
+            const currentTheme = document.body.classList.contains('dark') ? 'dark' : 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        }
+
+        function setTheme(theme) {
+            document.body.className = theme;
+            const icon = theme === 'dark' ? '☀️' : '🌙';
+            document.getElementById('themeToggle').textContent = icon;
+            localStorage.setItem('theme', theme);
+        }
+
+        // Tab Switching
+        function switchTab(tab, btn) {
+            document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        // Microphone Control
+        function toggleMic() {
+            if (!recognition) {
+                showNotification("Speech recognition not supported in your browser");
+                return;
+            }
+
+            if (!isRecording) {
+                recognition.lang = document.getElementById('in-lang').value;
+                recognition.start();
+                startRecording();
+            } else {
+                recognition.stop();
+                stopRecording();
+            }
+        }
+
+        function startRecording() {
+            isRecording = true;
+            const btn = document.getElementById('mic-btn');
+            btn.textContent = "🛑 Stop Recording";
+            btn.classList.add('listening');
+            showNotification("Listening...");
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            const btn = document.getElementById('mic-btn');
+            btn.textContent = "🎙️ Start Recording";
+            btn.classList.remove('listening');
+            showNotification("Recording stopped");
+        }
+
+        // File Upload
+        document.getElementById('file-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('file-name').textContent = `📎 ${file.name}`;
+            
+            const ext = file.name.split('.').pop().toLowerCase();
+            const reader = new FileReader();
+
+            if (ext === 'docx') {
+                reader.onload = async (ev) => {
+                    try {
+                        const result = await mammoth.extractRawText({ arrayBuffer: ev.target.result });
+                        document.getElementById('conv-output').value = result.value;
+                        updateWordCount('conv-output');
+                        showNotification("Word document loaded successfully!");
+                    } catch (error) {
+                        showNotification("Error reading Word document");
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (ext === 'xlsx') {
+                reader.onload = (ev) => {
+                    try {
+                        const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
+                        const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
+                        const mdTable = json.map((row) => `| ${row.join(" | ")} |`).join("\n");
+                        document.getElementById('conv-output').value = mdTable;
+                        updateWordCount('conv-output');
+                        showNotification("Excel file loaded successfully!");
+                    } catch (error) {
+                        showNotification("Error reading Excel file");
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (ext === 'txt') {
+                reader.onload = (ev) => {
+                    document.getElementById('conv-output').value = ev.target.result;
+                    updateWordCount('conv-output');
+                    showNotification("Text file loaded successfully!");
+                };
+                reader.readAsText(file);
+            } else {
+                showNotification("Unsupported file format");
+            }
+        });
+
+        // AI Processing
+        async function processAI(targetId, mode) {
+            const content = document.getElementById(targetId).value;
+            if (!content) {
+                showNotification("No content to process!");
+                return;
+            }
+
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = "⌛ AI is Thinking...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(
+                    "https://api-inference.huggingface.co/models/facebook/bart-large-cnn",
+                    {
+                        headers: { Authorization: `Bearer ${HF_TOKEN}` },
+                        method: "POST",
+                        body: JSON.stringify({
+                            inputs: mode === 'refine' ? "Fix grammar and professionalize: " + content : content,
+                            parameters: { max_length: 160 }
+                        }),
+                    }
+                );
+                const result = await response.json();
+
+                if (result[0]?.summary_text) {
+                    if (mode === 'summarize') {
+                        document.getElementById(targetId).value = `[AI SUMMARY]\n${result[0].summary_text}\n\n[FULL CONTENT]\n${content}`;
+                    } else {
+                        document.getElementById(targetId).value = result[0].summary_text;
+                    }
+                    updateWordCount(targetId);
+                    showNotification("AI processing complete!");
+                } else {
+                    showNotification("AI processing failed. Please try again.");
+                }
+            } catch (err) {
+                console.error("AI Error:", err);
+                showNotification("AI Error: Please check your connection.");
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // Export Functions
+        function exportDoc(id) {
+            const content = document.getElementById(id).value;
+            if (!content) {
+                showNotification("No content to export!");
+                return;
+            }
+
+            const doc = new docx.Document({ 
+                sections: [{ 
+                    children: [new docx.Paragraph(content)] 
+                }] 
+            });
+            
+            docx.Packer.toBlob(doc).then(blob => {
+                saveAs(blob, "DocsForm_AI_Export.docx");
+                showNotification("Document exported successfully!");
+            });
+        }
+
+        function exportPDF(id) {
+            const content = document.getElementById(id).value;
+            if (!content) {
+                showNotification("No content to export!");
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const text = doc.splitTextToSize(content, 180);
+            doc.text(text, 10, 10);
+            doc.save("DocsForm_AI_Export.pdf");
+            showNotification("PDF exported successfully!");
+        }
+
+        // Utility Functions
+        function copyText(id) {
+            const content = document.getElementById(id).value;
+            if (!content) {
+                showNotification("No content to copy!");
+                return;
+            }
+
+            navigator.clipboard.writeText(content).then(() => {
+                showNotification("Copied to clipboard!");
+            });
+        }
+
+        function clearText(id) {
+            document.getElementById(id).value = '';
+            updateWordCount(id);
+            const key = id === 'voice-output' ? 'voiceText' : 'converterText';
+            localStorage.removeItem(key);
+            showNotification("Content cleared!");
+        }
+
+        function updateWordCount(id) {
+            const text = document.getElementById(id).value;
+            const words = text.trim().split(/\s+/).filter(Boolean).length;
+            const countId = id === 'voice-output' ? 'voice-word-count' : 'conv-word-count';
+            document.getElementById(countId).textContent = `${words} words`;
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
